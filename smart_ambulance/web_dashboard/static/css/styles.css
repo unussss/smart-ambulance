@@ -1,0 +1,548 @@
+/*
+=============================================================================
+SMART AMBULANCE & TRAFFIC PRIORITY SYSTEM - ULTRA PREMIUM STYLESHEET
+Inspired by Modern Minimalist SaaS Design (InternMatch Reference)
+=============================================================================
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+    /* Reference Ultra Premium Palette */
+    --primary: #000000;
+    --primary-hover: #222222;
+    --accent: #4f46e5;       /* Indigo */
+    --accent-hover: #4338ca;
+    
+    --bg-main: #ffffff;
+    --bg-offset: #fafafa;
+    --bg-card: #ffffff;
+    --bg-glass: rgba(255, 255, 255, 0.85);
+    
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    
+    --border-color: #eaeaea;
+    --border-focus: #000000;
+    
+    /* Utility & State Colors */
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+
+    /* Traffic Lamp Colors */
+    --lamp-red-on: #ef4444;
+    --lamp-red-off: #fee2e2;
+    --lamp-yellow-on: #f59e0b;
+    --lamp-yellow-off: #fef3c7;
+    --lamp-green-on: #10b981;
+    --lamp-green-off: #d1fae5;
+
+    /* Roadside LCD Authentic Colors */
+    --lcd-bg: #002b80;
+    --lcd-text: #e0f7ff;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.06);
+    --shadow-float: 0 20px 40px rgba(0, 0, 0, 0.08);
+    
+    /* Radii */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-pill: 9999px;
+    
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    color: var(--text-main);
+    background-color: var(--bg-main);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphic Navbar */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-glass);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -0.04em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-badge {
+    background: #000;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.clock-badge {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--bg-offset);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-pill);
+}
+
+.port-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+select.input-clean {
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-main);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+select.input-clean:focus {
+    border-color: var(--primary);
+}
+
+/* Premium Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    letter-spacing: -0.01em;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+    border-color: var(--border-color);
+    color: var(--text-main);
+    background: transparent;
+}
+
+.btn-outline:hover {
+    border-color: var(--primary);
+    background: var(--bg-offset);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+/* Dot-Grid Hero Section */
+.hero {
+    background-color: var(--bg-offset);
+    background-image: radial-gradient(var(--border-color) 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1.2rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.pill-normal {
+    background: #e6f9f0;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.pill-emergency {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    animation: pulse 1.5s infinite;
+}
+
+.pill-passed {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+.hero h1 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.hero p {
+    font-size: 1rem;
+    color: var(--text-muted);
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+/* Main Dashboard Content Layout */
+.main-wrapper {
+    max-width: 1240px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+/* Grid of Cards */
+.cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 1.75rem;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-pill);
+}
+
+.badge-green { background: #d1fae5; color: #047857; }
+.badge-red   { background: #fee2e2; color: #b91c1c; }
+.badge-blue  { background: #e0e7ff; color: #3730a3; }
+
+/* Traffic Light Enclosure */
+.traffic-tower {
+    width: 90px;
+    background: #111827;
+    padding: 15px 0;
+    border-radius: 45px;
+    margin: 1rem auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.bulb {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 3px solid #1f2937;
+    transition: all 0.25s ease;
+}
+
+.bulb-red    { background: var(--lamp-red-off); }
+.bulb-yellow { background: var(--lamp-yellow-off); }
+.bulb-green  { background: var(--lamp-green-off); }
+
+.bulb-red.active {
+    background: var(--lamp-red-on);
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
+}
+
+.bulb-yellow.active {
+    background: var(--lamp-yellow-on);
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.9);
+}
+
+.bulb-green.active {
+    background: var(--lamp-green-on);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.9);
+}
+
+.lane-status-text {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-top: 1rem;
+    letter-spacing: -0.01em;
+}
+
+/* Authentic Roadside LCD Card Component */
+.lcd-container {
+    background: #020617;
+    border-radius: var(--radius-md);
+    padding: 12px;
+    border: 2px solid #334155;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
+    margin-bottom: 1.25rem;
+}
+
+.lcd-screen {
+    background: var(--lcd-bg);
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    font-family: var(--font-mono);
+}
+
+.lcd-line {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--lcd-text);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 8px rgba(224, 247, 255, 0.6);
+    line-height: 1.6;
+}
+
+/* Ultrasonic Radar Meter */
+.radar-section {
+    background: var(--bg-offset);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    text-align: center;
+}
+
+.radar-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.radar-val {
+    font-size: 1.75rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text-main);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    margin: 0.75rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 50%;
+    border-radius: var(--radius-pill);
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.proximity-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Interactive Control Bar (Pill Buttons) */
+.controls-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.controls-label h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.controls-label p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.button-group {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Audit Log Table */
+.log-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 1.75rem;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-offset);
+}
+
+td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+tr:hover td {
+    background: var(--bg-offset);
+}
+
+.tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    display: inline-block;
+}
+
+.tag-EMERGENCY { background: #fee2e2; color: #b91c1c; }
+.tag-PASSED    { background: #fef3c7; color: #b45309; }
+.tag-NORMAL    { background: #d1fae5; color: #047857; }
+.tag-INFO      { background: #e0e7ff; color: #3730a3; }
+.tag-WARNING   { background: #ffedd5; color: #c2410c; }
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+}

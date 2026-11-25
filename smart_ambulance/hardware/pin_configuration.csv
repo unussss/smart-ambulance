@@ -1,0 +1,24 @@
+Unit,Microcontroller,Component,Component Pin,Microcontroller Pin / GPIO,Notes
+Ambulance Unit,ESP8266 (NodeMCU),Push Button,Terminal 1,D5,Emergency trigger switch
+Ambulance Unit,ESP8266 (NodeMCU),Push Button,Terminal 2,GND,Uses internal pull-up resistor
+Ambulance Unit,ESP8266 (NodeMCU),Active Buzzer,Positive (+),D2,Emergency siren audio alert
+Ambulance Unit,ESP8266 (NodeMCU),Active Buzzer,Negative (-),GND,Ground reference
+Ambulance Unit,ESP8266 (NodeMCU),Red LED,Anode (Long Leg),D1,Requires 220Ω resistor
+Ambulance Unit,ESP8266 (NodeMCU),Red LED,Cathode (Short Leg),GND,Ground reference
+Traffic Signal Unit,ESP32 DevKit V1,Traffic 1 RED LED (Lane 1),Anode (Long Leg),GPIO 25,Ambulance Corridor - 220Ω Resistor
+Traffic Signal Unit,ESP32 DevKit V1,Traffic 1 YELLOW LED (Lane 1),Anode (Long Leg),GPIO 26,Ambulance Corridor - 220Ω Resistor
+Traffic Signal Unit,ESP32 DevKit V1,Traffic 1 GREEN LED (Lane 1),Anode (Long Leg),GPIO 27,Ambulance Corridor - 220Ω Resistor
+Traffic Signal Unit,ESP32 DevKit V1,Traffic 2 RED LED (Lane 2),Anode (Long Leg),GPIO 32,Cross Traffic Lane - 220Ω Resistor
+Traffic Signal Unit,ESP32 DevKit V1,Traffic 2 YELLOW LED (Lane 2),Anode (Long Leg),GPIO 33,Cross Traffic Lane - 220Ω Resistor
+Traffic Signal Unit,ESP32 DevKit V1,Traffic 2 GREEN LED (Lane 2),Anode (Long Leg),GPIO 18,Cross Traffic Lane - 220Ω Resistor (DO NOT USE GPIO 35!)
+Traffic Signal Unit,ESP32 DevKit V1,All 6 Traffic LEDs,Cathode (Short Leg),GND,Common ground rail on breadboard
+Traffic Signal Unit,ESP32 DevKit V1,16x2 I2C LCD Display,SDA,GPIO 21,Hardware I2C Data line
+Traffic Signal Unit,ESP32 DevKit V1,16x2 I2C LCD Display,SCL,GPIO 22,Hardware I2C Clock line
+Traffic Signal Unit,ESP32 DevKit V1,16x2 I2C LCD Display,VCC,VIN (5V),CRITICAL: Must be 5V VIN (not 3.3V)
+Traffic Signal Unit,ESP32 DevKit V1,16x2 I2C LCD Display,GND,GND,Common ground rail
+Traffic Signal Unit,ESP32 DevKit V1,IR Obstacle Sensor,VCC,3.3V (or VIN 5V),Power supply (3.3V recommended for safe logic)
+Traffic Signal Unit,ESP32 DevKit V1,IR Obstacle Sensor,GND,GND,Common ground rail
+Traffic Signal Unit,ESP32 DevKit V1,IR Obstacle Sensor,OUT / DO,GPIO 14,Digital detection output (Active LOW)
+Traffic Signal Unit,Raspberry Pi Zero 2 W,Direct Serial Data,Pin 10 (GPIO 15 - RXD0),GPIO 17 (TX2 on ESP32),Hardware serial data link without USB
+Traffic Signal Unit,Raspberry Pi Zero 2 W,Hardware Priority Trigger,Pin 16 (GPIO 23),GPIO 16 on ESP32,HIGH when emergency active LOW when normal
+Traffic Signal Unit,Raspberry Pi Zero 2 W,Common Ground,Pin 6 (GND),GND on ESP32,Common electrical ground reference

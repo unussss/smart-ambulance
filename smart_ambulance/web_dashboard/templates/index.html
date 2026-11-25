@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriorityRoute | Smart Ambulance Traffic Command Center</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22 0%22 100%22 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+
+    <!-- Header Navigation Bar -->
+    <header>
+        <div class="nav-container">
+            <div class="logo">
+                <span>⚡ PriorityRoute</span>
+                <span class="logo-badge">Live System</span>
+            </div>
+
+            <div class="nav-controls">
+                <div class="clock-badge" id="clockDisplay">00:00:00</div>
+
+                <div class="port-selector">
+                    <select id="portSelect" class="input-clean">
+                        <option value="">Detecting Ports...</option>
+                    </select>
+                    <button id="btnConnect" class="btn btn-primary" onclick="toggleConnect()">
+                        <span>🔌</span> Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dot Grid Hero Section -->
+    <section class="hero">
+        <div class="hero-pill pill-normal" id="modeHeroPill">
+            <span id="modeDot">🟢</span> <span id="modeText">NORMAL 2-WAY TRAFFIC CYCLE ACTIVE</span>
+        </div>
+        <h1>Autonomous Emergency Corridor</h1>
+        <p>Real-Time ESP-NOW Wireless Traffic Preemption with Roadside LCD Telemetry & Ultrasonic Passing Verification</p>
+    </section>
+
+    <!-- Main Dashboard Container -->
+    <main class="main-wrapper">
+        
+        <!-- 3 Columns: Lane 1 | LCD & Radar | Lane 2 -->
+        <div class="cards-grid">
+            
+            <!-- CARD 1: LANE 1 (AMBULANCE) -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Lane 1 (Ambulance Corridor)</span>
+                    <span class="badge badge-green" id="badgeL1">PRIORITY</span>
+                </div>
+
+                <div class="traffic-tower">
+                    <div class="bulb bulb-red" id="bulbL1Red"></div>
+                    <div class="bulb bulb-yellow" id="bulbL1Yellow"></div>
+                    <div class="bulb bulb-green active" id="bulbL1Green"></div>
+                </div>
+
+                <div class="lane-status-text" id="statusL1Text" style="color: var(--success);">
+                    SIGNAL: GREEN (GO)
+                </div>
+            </div>
+
+            <!-- CARD 2: ROADSIDE 16x2 LCD & IR PASSING SENSOR -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Roadside 16x2 LCD & IR Sensor</span>
+                    <span class="badge badge-blue">I2C 0x27 / 0x3F</span>
+                </div>
+
+                <!-- Authentic Roadside 16x2 LCD Box -->
+                <div class="lcd-container">
+                    <div class="lcd-screen">
+                        <div class="lcd-line" id="lcdLine1">TRAFFIC: NORMAL</div>
+                        <div class="lcd-line" id="lcdLine2">L1: GO | L2: STOP</div>
+                    </div>
+                </div>
+
+                <!-- IR Passing Sensor Status Display -->
+                <div class="radar-section">
+                    <div class="radar-title">IR Vehicle Passing Sensor (GPIO 14)</div>
+                    <div class="radar-val" id="irSensorState" style="color: var(--success);">CLEAR</div>
+                    
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" id="irProgressBar" style="width: 10%; background-color: var(--success);"></div>
+                    </div>
+
+                    <div class="proximity-badge" id="proximityText">
+                        Awaiting Vehicle Crossing Beam...
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 3: LANE 2 (CROSS TRAFFIC) -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Lane 2 (Cross Traffic)</span>
+                    <span class="badge badge-red" id="badgeL2">GENERAL</span>
+                </div>
+
+                <div class="traffic-tower">
+                    <div class="bulb bulb-red active" id="bulbL2Red"></div>
+                    <div class="bulb bulb-yellow" id="bulbL2Yellow"></div>
+                    <div class="bulb bulb-green" id="bulbL2Green"></div>
+                </div>
+
+                <div class="lane-status-text" id="statusL2Text" style="color: var(--danger);">
+                    SIGNAL: RED (HALT)
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Interactive Control Bar (Pill Buttons) -->
+        <div class="controls-card">
+            <div class="controls-label">
+                <h3>Presentation Control Pad</h3>
+                <p>Trigger live actions directly for external examiners:</p>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-danger" onclick="sendCommand('DEMO_EMERGENCY')">
+                    🚨 1. Trigger Ambulance Priority
+                </button>
+                <button class="btn btn-warning" onclick="sendCommand('DEMO_VEHICLE_PASSED')">
+                    🚗 2. Trigger IR Passing ➔ 3s Reset
+                </button>
+                <button class="btn btn-outline" onclick="sendCommand('DEMO_NORMAL')">
+                    🟢 3. Force Normal 5s Cycle
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Event Audit Log Table -->
+        <div class="log-card">
+            <div class="card-header">
+                <span class="card-title">Live Telemetry & Event Audit Log</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="emgClearedCount">🚨 Emergencies Cleared: 0</span>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Timestamp</th>
+                            <th style="width: 140px;">Event Category</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsTableBody">
+                        <tr>
+                            <td>--:--:--</td>
+                            <td><span class="tag tag-INFO">INITIALIZING</span></td>
+                            <td>Awaiting telemetry connection...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Frontend Engine Script -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+Unit,Quantity,Component Name,Specification / Details
+Ambulance Unit,1,ESP8266 NodeMCU,ESP-12E Wi-Fi development board (Transmitter)
+Ambulance Unit,1,Push Button,Tactile switch (Emergency trigger)
+Ambulance Unit,1,Active Buzzer,3.3V - 5V audio alert buzzer
+Ambulance Unit,1,Red LED,5mm LED indicator
+Ambulance Unit,1,Resistor,220Ω (For Ambulance LED)
+Ambulance Unit,1,Breadboard,Mini or half-size breadboard
+Ambulance Unit,1,Power Bank / USB Cable,Mobile 5V power supply
+Traffic Signal Unit,1,ESP32 DevKit V1,30-pin or 38-pin dual-core microcontroller (Receiver)
+Traffic Signal Unit,1,Raspberry Pi Zero 2 W,Running Raspberry Pi OS with Python 3 / Tkinter
+Traffic Signal Unit,1,HC-SR04 Ultrasonic Sensor,5V ultrasonic distance sensor
+Traffic Signal Unit,2,Red LEDs,5mm LEDs (Lane 1 Red + Lane 2 Red)
+Traffic Signal Unit,2,Yellow LEDs,5mm LEDs (Lane 1 Yellow + Lane 2 Yellow)
+Traffic Signal Unit,2,Green LEDs,5mm LEDs (Lane 1 Green + Lane 2 Green)
+Traffic Signal Unit,6,Resistors,220Ω (1 for each traffic LED)
+Traffic Signal Unit,1,Resistor,1kΩ (For HC-SR04 Echo voltage divider)
+Traffic Signal Unit,1,Resistor,2kΩ (For HC-SR04 Echo voltage divider)
+Traffic Signal Unit,1,Breadboard,Full-size or 2x half-size breadboards
+Traffic Signal Unit,1,Jumper Wires Set,Male-to-Male and Male-to-Female wires
+Traffic Signal Unit,1,USB Data Cable,Micro-USB data cable connecting ESP32 to Pi / Laptop

@@ -1,0 +1,420 @@
+#include <esp_now.h>
+#include <WiFi.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// =========================================================================
+// 📺 16x2 I2C LCD DISPLAY SETUP (Dual Address 0x27 & 0x3F Support)
+// =========================================================================
+#define I2C_SDA_PIN 21
+#define I2C_SCL_PIN 22
+
+// Pre-instantiate both standard I2C addresses
+LiquidCrystal_I2C lcd27(0x27, 16, 2);
+LiquidCrystal_I2C lcd3F(0x3F, 16, 2);
+LiquidCrystal_I2C* activeLcd = &lcd27; // Points to whichever address responds
+bool lcdFound = false;
+byte lcdDetectedAddress = 0x27;
+
+// =========================================================================
+// 🚦 TRAFFIC LIGHT 1 (LANE 1: AMBULANCE CORRIDOR)
+// =========================================================================
+#define RED1_PIN    25
+#define YELLOW1_PIN 26
+#define GREEN1_PIN  27
+
+// =========================================================================
+// 🚦 TRAFFIC LIGHT 2 (LANE 2: CROSS TRAFFIC)
+// =========================================================================
+#define RED2_PIN    32
+#define YELLOW2_PIN 33
+#define GREEN2_PIN  18  // Verified safe output pin
+
+// =========================================================================
+// 🍓 RASPBERRY PI DIRECT GPIO HARDWARE LINK (NO USB CABLE NEEDED!)
+// =========================================================================
+#define PI_PRIORITY_PIN 16 // Connects to Pi Pin 16 (GPIO 23): HIGH in Emergency, LOW in Normal
+#define PI_TX2_PIN      17 // Connects to Pi Pin 10 (GPIO 15 - RXD0): Hardware Serial Data
+
+// =========================================================================
+// 🔍 IR OBSTACLE SENSOR (PHYSICAL VEHICLE PASSING DETECTOR)
+// =========================================================================
+#define IR_SENSOR_PIN 14 // Digital Output (OUT) of IR sensor module
+// Most standard IR obstacle sensors output LOW (0) when object is detected
+#define IR_ACTIVE_STATE LOW
+
+// =========================================================================
+// ESP-NOW DATA STRUCTURE
+// =========================================================================
+typedef struct struct_message {
+    bool emergency;
+} struct_message;
+
+struct_message myData;
+
+// State Machine Variables
+bool emergencyMode = false;
+bool vehiclePassedDetected = false;
+unsigned long vehiclePassedTime = 0;
+const unsigned long CLEARANCE_DURATION_MS = 3000; // 3 seconds clearance shutdown
+unsigned long lastEmergencyPacketTime = 0;
+const unsigned long OUT_OF_RANGE_TIMEOUT_MS = 5000; // 5 seconds disconnect timeout
+
+// Coordinated Traffic Timers (5s Green/Red, 2s Yellow)
+int trafficPhase = 0;
+unsigned long lastPhaseChangeTime = 0;
+const unsigned long PHASE_MAIN_DURATION_MS   = 5000; // 5 Seconds
+const unsigned long PHASE_YELLOW_DURATION_MS = 2000; // 2 Seconds
+
+// Telemetry & Sensor Timers
+unsigned long lastTelemetryTime = 0;
+const unsigned long TELEMETRY_INTERVAL_MS = 250;
+unsigned long lastSensorReadTime = 0;
+const unsigned long SENSOR_INTERVAL_MS = 100;
+bool currentIrStatus = false; // true = detected, false = clear
+
+// LCD Caching to avoid flicker
+String currentLcdLine1 = "";
+String currentLcdLine2 = "";
+unsigned long lastLcdToggleTime = 0;
+bool emgBannerToggle = false;
+
+// Dual-Stream Helper (Sends to both USB Serial and Raspberry Pi Hardware UART2)
+void streamPrint(String text) {
+  Serial.print(text);
+  Serial2.print(text);
+}
+
+void streamPrintln(String text) {
+  Serial.println(text);
+  Serial2.println(text);
+}
+
+// LCD Update Helper
+void updateLcd(String line1, String line2) {
+  if (!lcdFound || activeLcd == nullptr) return;
+  if (line1 != currentLcdLine1 || line2 != currentLcdLine2) {
+    currentLcdLine1 = line1;
+    currentLcdLine2 = line2;
+    activeLcd->clear();
+    activeLcd->setCursor(0, 0);
+    activeLcd->print(line1.substring(0, 16));
+    activeLcd->setCursor(0, 1);
+    activeLcd->print(line2.substring(0, 16));
+  }
+}
+
+// Helper: Set Traffic Light 1
+void setTL1(bool r, bool y, bool g) {
+  digitalWrite(RED1_PIN,    r ? HIGH : LOW);
+  digitalWrite(YELLOW1_PIN, y ? HIGH : LOW);
+  digitalWrite(GREEN1_PIN,  g ? HIGH : LOW);
+}
+
+// Helper: Set Traffic Light 2
+void setTL2(bool r, bool y, bool g) {
+  digitalWrite(RED2_PIN,    r ? HIGH : LOW);
+  digitalWrite(YELLOW2_PIN, y ? HIGH : LOW);
+  digitalWrite(GREEN2_PIN,  g ? HIGH : LOW);
+}
+
+String getTL1Color() {
+  if (digitalRead(GREEN1_PIN) == HIGH) return "GREEN";
+  if (digitalRead(YELLOW1_PIN) == HIGH) return "YELLOW";
+  return "RED";
+}
+
+String getTL2Color() {
+  if (digitalRead(GREEN2_PIN) == HIGH) return "GREEN";
+  if (digitalRead(YELLOW2_PIN) == HIGH) return "YELLOW";
+  return "RED";
+}
+
+// ESP-NOW Receive Callback
+void OnDataRecv(const esp_now_recv_info * mac_info, const uint8_t *incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  
+  if (myData.emergency) {
+    if (!emergencyMode && !vehiclePassedDetected) {
+      streamPrintln("EVENT: EMERGENCY_REQUEST_RECEIVED");
+      digitalWrite(PI_PRIORITY_PIN, HIGH); // Signal Pi Pin 16 HIGH
+      vehiclePassedDetected = false;
+    }
+    if (!vehiclePassedDetected) {
+      emergencyMode = true;
+      lastEmergencyPacketTime = millis();
+    }
+  } else {
+    if (emergencyMode && !vehiclePassedDetected) {
+      emergencyMode = false;
+      digitalWrite(PI_PRIORITY_PIN, LOW); // Signal Pi Pin 16 LOW
+      streamPrintln("EVENT: EMERGENCY_CANCELLED_BY_AMBULANCE");
+      updateLcd("AMBULANCE CANCEL", "RESUMING NORMAL");
+      delay(600);
+      lastPhaseChangeTime = millis();
+      trafficPhase = 0;
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);   // USB Serial Monitor
+  Serial2.begin(115200, SERIAL_8N1, 16, PI_TX2_PIN); // Hardware Serial to Pi GPIO 15
+  delay(300);
+  
+  // 1. Configure LED outputs
+  pinMode(RED1_PIN,    OUTPUT);
+  pinMode(YELLOW1_PIN, OUTPUT);
+  pinMode(GREEN1_PIN,  OUTPUT);
+  
+  pinMode(RED2_PIN,    OUTPUT);
+  pinMode(YELLOW2_PIN, OUTPUT);
+  pinMode(GREEN2_PIN,  OUTPUT);
+
+  // 2. Configure Pi Direct Hardware Priority Pin
+  pinMode(PI_PRIORITY_PIN, OUTPUT);
+  digitalWrite(PI_PRIORITY_PIN, LOW);
+  
+  // 3. Configure IR Sensor Input Pin
+  pinMode(IR_SENSOR_PIN, INPUT_PULLUP);
+
+  // 4. Initialize I2C Bus & LCD Auto-Detection
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  delay(100);
+
+  Serial.println("\n--- [I2C BUS SCANNER] ---");
+  Wire.beginTransmission(0x27);
+  if (Wire.endTransmission() == 0) {
+    activeLcd = &lcd27;
+    lcdFound = true;
+    lcdDetectedAddress = 0x27;
+    Serial.println("✅ LCD Found at Address: 0x27");
+  } else {
+    Wire.beginTransmission(0x3F);
+    if (Wire.endTransmission() == 0) {
+      activeLcd = &lcd3F;
+      lcdFound = true;
+      lcdDetectedAddress = 0x3F;
+      Serial.println("✅ LCD Found at Address: 0x3F");
+    } else {
+      // Default to 0x27 anyway as fallback
+      activeLcd = &lcd27;
+      lcdFound = true;
+      lcdDetectedAddress = 0x27;
+      Serial.println("⚠️ Scan missed LCD. Initializing default 0x27...");
+    }
+  }
+
+  // Initialize LCD display
+  activeLcd->init();
+  activeLcd->backlight();
+  activeLcd->clear();
+  activeLcd->setCursor(0, 0);
+  activeLcd->print("SMART TRAFFIC");
+  activeLcd->setCursor(0, 1);
+  activeLcd->print("SYSTEM READY");
+  Serial.println("✅ LCD Initialized & Backlight Enabled!");
+
+  // Initial Safe State: TL1 RED | TL2 GREEN
+  setTL1(true, false, false);
+  setTL2(false, false, true);
+  delay(1000);
+
+  // 5. Initialize ESP-NOW
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+
+  if (esp_now_init() != ESP_OK) {
+    streamPrintln("EVENT: ERROR_ESP_NOW_INIT");
+    updateLcd("ESP-NOW ERROR", "CHECK SETTINGS");
+    return;
+  }
+  
+  esp_now_register_recv_cb(OnDataRecv);
+
+  lastPhaseChangeTime = millis();
+  trafficPhase = 0; // Starts Phase 0: TL1 RED | TL2 GREEN
+  
+  streamPrintln("EVENT: SYSTEM_READY");
+  streamPrintln("EVENT: COORDINATED_TRAFFIC_ACTIVE");
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  // 1. Process Dashboard Demo Commands from USB Serial or Pi Serial2
+  HardwareSerial* ports[2] = {&Serial, &Serial2};
+  for (int p = 0; p < 2; p++) {
+    if (ports[p]->available() > 0) {
+      String cmd = ports[p]->readStringUntil('\n');
+      cmd.trim();
+      if (cmd == "CMD:DEMO_EMERGENCY") {
+        emergencyMode = true;
+        vehiclePassedDetected = false;
+        lastEmergencyPacketTime = currentMillis;
+        digitalWrite(PI_PRIORITY_PIN, HIGH);
+        streamPrintln("EVENT: MANUAL_EMERGENCY_TRIGGERED");
+      } else if (cmd == "CMD:DEMO_VEHICLE_PASSED") {
+        if (emergencyMode) {
+          vehiclePassedDetected = true;
+          vehiclePassedTime = currentMillis;
+          streamPrintln("EVENT: DEMO_VEHICLE_PASSED_JUNCTION");
+        }
+      } else if (cmd == "CMD:DEMO_NORMAL") {
+        emergencyMode = false;
+        vehiclePassedDetected = false;
+        digitalWrite(PI_PRIORITY_PIN, LOW);
+        streamPrintln("EVENT: MANUAL_NORMAL_RESTORED");
+        lastPhaseChangeTime = currentMillis;
+        trafficPhase = 0;
+      }
+    }
+  }
+
+  // 2. Read IR Sensor (Physical Passing Verification)
+  if (currentMillis - lastSensorReadTime >= SENSOR_INTERVAL_MS) {
+    lastSensorReadTime = currentMillis;
+    // Sensor OUT goes LOW when obstacle/ambulance is directly in front
+    currentIrStatus = (digitalRead(IR_SENSOR_PIN) == IR_ACTIVE_STATE);
+  }
+
+  // 3. Traffic Lights & Coordination Logic
+  if (emergencyMode) {
+    digitalWrite(PI_PRIORITY_PIN, HIGH);
+    
+    // 🚨 EMERGENCY OVERRIDE:
+    // Lane 1 (Ambulance Lane) = GREEN
+    // Lane 2 (Cross Traffic)  = RED
+    setTL1(false, false, true);
+    setTL2(true, false, false);
+
+    // CASE A: VEHICLE HAS PHYSICALLY TRIGGERED THE IR SENSOR
+    if (vehiclePassedDetected) {
+      unsigned long elapsedSincePassed = currentMillis - vehiclePassedTime;
+      
+      if (elapsedSincePassed >= CLEARANCE_DURATION_MS) {
+        emergencyMode = false;
+        vehiclePassedDetected = false;
+        digitalWrite(PI_PRIORITY_PIN, LOW);
+        streamPrintln("EVENT: AMBULANCE_PASSED_TURNING_TO_NORMAL");
+        updateLcd("AMBULANCE PASSED", "TURNING TO NORMAL");
+        delay(800);
+        lastPhaseChangeTime = millis();
+        trafficPhase = 0;
+        return;
+      } else {
+        int secRemaining = (CLEARANCE_DURATION_MS - elapsedSincePassed) / 1000 + 1;
+        updateLcd("AMBULANCE PASSED", "NORMAL IN " + String(secRemaining) + " SEC");
+      }
+    } 
+    // CASE B: VEHICLE APPROACHING (AWAITING PHYSICAL IR SENSOR PASS OR TIMEOUT)
+    else {
+      // Check IR Sensor: Has the vehicle cut across the beam?
+      if (currentIrStatus) {
+        vehiclePassedDetected = true;
+        vehiclePassedTime = currentMillis;
+        streamPrintln("EVENT: IR_SENSOR_VERIFIED_AMBULANCE_PASSED");
+        streamPrintln("EVENT: CLEARANCE_COUNTDOWN_3_SEC_STARTED");
+        updateLcd("AMBULANCE PASSED", "NORMAL IN 3 SEC");
+      } 
+      else if (currentMillis - lastEmergencyPacketTime > OUT_OF_RANGE_TIMEOUT_MS) {
+        emergencyMode = false;
+        vehiclePassedDetected = false;
+        digitalWrite(PI_PRIORITY_PIN, LOW);
+        streamPrintln("EVENT: OUT_OF_RANGE_DISCONNECT");
+        streamPrintln("EVENT: RESUMING_NORMAL_MODE");
+        updateLcd("OUT OF RANGE", "TURNING TO NORMAL");
+        delay(1000);
+        lastPhaseChangeTime = millis();
+        trafficPhase = 0;
+        return;
+      } 
+      else {
+        if (currentMillis - lastLcdToggleTime >= 1000) {
+          lastLcdToggleTime = currentMillis;
+          emgBannerToggle = !emgBannerToggle;
+        }
+
+        if (emgBannerToggle) {
+          updateLcd("!AMBULANCE NEAR!", "CLEAR LANE FAST!");
+        } else {
+          updateLcd("PRIORITY ACTIVE", "L1:GRN  L2:RED");
+        }
+      }
+    }
+  } 
+  // 🚦 COORDINATED 2-WAY TRAFFIC CYCLE:
+  else {
+    digitalWrite(PI_PRIORITY_PIN, LOW);
+    
+    switch (trafficPhase) {
+      case 0:
+        setTL1(true, false, false);
+        setTL2(false, false, true);
+        {
+          int remainingSec = (PHASE_MAIN_DURATION_MS - (currentMillis - lastPhaseChangeTime)) / 1000 + 1;
+          updateLcd("TL1:RED   TL2:GRN", "NEXT IN " + String(remainingSec) + "s");
+        }
+        if (currentMillis - lastPhaseChangeTime >= PHASE_MAIN_DURATION_MS) {
+          trafficPhase = 1;
+          lastPhaseChangeTime = currentMillis;
+        }
+        break;
+
+      case 1:
+        setTL1(false, true, false);
+        setTL2(false, true, false);
+        updateLcd("TL1:YEL   TL2:YEL", "CAUTION / PREPARE");
+        if (currentMillis - lastPhaseChangeTime >= PHASE_YELLOW_DURATION_MS) {
+          trafficPhase = 2;
+          lastPhaseChangeTime = currentMillis;
+        }
+        break;
+
+      case 2:
+        setTL1(false, false, true);
+        setTL2(true, false, false);
+        {
+          int remainingSec = (PHASE_MAIN_DURATION_MS - (currentMillis - lastPhaseChangeTime)) / 1000 + 1;
+          updateLcd("TL1:GRN   TL2:RED", "NEXT IN " + String(remainingSec) + "s");
+        }
+        if (currentMillis - lastPhaseChangeTime >= PHASE_MAIN_DURATION_MS) {
+          trafficPhase = 3;
+          lastPhaseChangeTime = currentMillis;
+        }
+        break;
+
+      case 3:
+        setTL1(false, true, false);
+        setTL2(false, true, false);
+        updateLcd("TL1:YEL   TL2:YEL", "CAUTION / PREPARE");
+        if (currentMillis - lastPhaseChangeTime >= PHASE_YELLOW_DURATION_MS) {
+          trafficPhase = 0;
+          lastPhaseChangeTime = currentMillis;
+        }
+        break;
+    }
+  }
+
+  // 4. Send Real-Time Telemetry to Dashboard (Every 250ms)
+  if (currentMillis - lastTelemetryTime >= TELEMETRY_INTERVAL_MS) {
+    lastTelemetryTime = currentMillis;
+    
+    String telemetry = "STATUS:MODE=";
+    if (emergencyMode) {
+      if (vehiclePassedDetected) telemetry += "PASSED_3S";
+      else telemetry += "EMERGENCY";
+    } else {
+      telemetry += "NORMAL";
+    }
+    telemetry += ",L1=" + getTL1Color();
+    telemetry += ",L2=" + getTL2Color();
+    telemetry += ",IR=" + String(currentIrStatus ? "DETECTED" : "CLEAR");
+    telemetry += ",LCD1=" + currentLcdLine1;
+    telemetry += ",LCD2=" + currentLcdLine2;
+
+    streamPrintln(telemetry);
+  }
+
+  delay(20);
+}
